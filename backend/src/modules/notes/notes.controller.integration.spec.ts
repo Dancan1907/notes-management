@@ -51,7 +51,8 @@ describe("NotesController (Integration)", () => {
       password,
     });
 
-    accessToken = loginResult.accessToken;
+    // ✅ FIX: Check the correct property name from login response
+    accessToken = loginResult.access_token || loginResult.accessToken;
   });
 
   afterAll(async () => {
@@ -379,7 +380,7 @@ describe("NotesController (Integration)", () => {
       }
 
       const responses = await Promise.all(promises);
-      const rateLimited = responses.some((res) => res.status === 429);
+      const rateLimited = responses.some((res: any) => res.status === 429);
       expect(rateLimited).toBe(true);
     });
   });
