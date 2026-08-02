@@ -16,8 +16,9 @@ import {
   DefaultValuePipe,
   ParseBoolPipe,
   ParseIntPipe,
-  Req, // ✅ Added for fallback
-  UnauthorizedException, // ✅ Added for error handling
+  Req,
+  UnauthorizedException,
+  BadRequestException, // ✅ Added for custom validation
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -34,7 +35,41 @@ import { NoteResponseDto } from "./dto/note-response.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Throttle } from "@nestjs/throttler";
-import { Request } from "express"; // ✅ Added for type safety
+import { Request } from "express";
+
+/**
+ * ✅ Custom pipe to validate CUID format (Prisma's default ID format)
+ * CUID format: starts with 'c', followed by letters, numbers, and some special chars
+ * Example: cmsbm0qzP0085zc3ppkakjikx
+ */
+const isValidCuid = (id: string): boolean => {
+  // CUID pattern: starts with 'c', then 24-25 characters of [a-zA-Z0-9-_]
+  return /^c[a-zA-Z0-9-_]{24,25}$/.test(id);
+};
+
+/**
+ * ✅ Custom validation pipe that accepts both UUID and CUID
+ */
+const ParseIdPipe = new (class {
+  transform(value: string) {
+    // Check if it's a valid UUID
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        value,
+      );
+
+    // Check if it's a valid CUID
+    const isCuid = isValidCuid(value);
+
+    if (!isUuid && !isCuid) {
+      throw new BadRequestException(
+        `Invalid ID format: "${value}". Expected UUID or CUID.`,
+      );
+    }
+
+    return value;
+  }
+})();
 
 /**
  * Notes Controller - REST API endpoints for note management
@@ -54,7 +89,7 @@ export class NotesController {
    * Tries multiple sources: CurrentUser decorator, request.user, or request.user.id
    */
   private extractUserId(userIdFromDecorator: string, req: Request): string {
-    // ✅ If decorator provided a valid ID, use it
+    // If decorator provided a valid ID, use it
     if (userIdFromDecorator) {
       console.log(
         "✅ User ID from @CurrentUser decorator:",
@@ -63,7 +98,7 @@ export class NotesController {
       return userIdFromDecorator;
     }
 
-    // ✅ Fallback: Try to get from request.user
+    // Fallback: Try to get from request.user
     console.log("🔍 @CurrentUser returned undefined, trying request.user...");
     console.log("🔍 request.user:", req.user);
 
@@ -77,7 +112,7 @@ export class NotesController {
       }
     }
 
-    // ✅ If all fail, throw error
+    // If all fail, throw error
     console.error("❌ No user ID found in request");
     throw new UnauthorizedException("User ID not found in request");
   }
@@ -101,16 +136,14 @@ export class NotesController {
     status: HttpStatus.UNAUTHORIZED,
     description: "User not authenticated",
   })
-  @Throttle({ default: { limit: 30, ttl: 60000 } }) // Rate limit: 30 requests per minute
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async createNote(
     @CurrentUser("id") userId: string,
-    @Req() req: Request, // ✅ Added for fallback
+    @Req() req: Request,
     @Body() createNoteDto: CreateNoteDto,
   ): Promise<NoteResponseDto> {
-    // ✅ Extract user ID with fallback
     const finalUserId = this.extractUserId(userId, req);
     console.log("📝 Creating note for user:", finalUserId);
-
     return this.notesService.createNote(finalUserId, createNoteDto);
   }
 
@@ -174,7 +207,7 @@ export class NotesController {
   })
   async getNotes(
     @CurrentUser("id") userId: string,
-    @Req() req: Request, // ✅ Added for fallback
+    @Req() req: Request,
     @Query("search") search?: string,
     @Query(
       "isArchived",
@@ -201,10 +234,7 @@ export class NotesController {
     )
     offset?: number,
   ) {
-    // ✅ Extract user ID with fallback
     const finalUserId = this.extractUserId(userId, req);
-
-    // Use nullish coalescing to ensure limit is always a number
     const safeLimit = limit ?? 10;
     const safeOffset = offset ?? 0;
 
@@ -212,7 +242,7 @@ export class NotesController {
       search,
       isArchived,
       isFavorite,
-      limit: Math.min(safeLimit, 100), // Max limit 100 to prevent overloading
+      limit: Math.min(safeLimit, 100),
       offset: safeOffset,
     });
   }
@@ -225,8 +255,9 @@ export class NotesController {
   @ApiOperation({ summary: "Get a note by ID" })
   @ApiParam({
     name: "id",
-    description: "Note ID (UUID)",
+    description: "Note ID (UUID or CUID format)",
     type: String,
+    example: "cmsbm0qzP0085zc3ppkakjikx",
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -247,10 +278,9 @@ export class NotesController {
   })
   async getNote(
     @CurrentUser("id") userId: string,
-    @Req() req: Request, // ✅ Added for fallback
-    @Param("id", ParseUUIDPipe) noteId: string,
+    @Req() req: Request,
+    @Param("id", ParseIdPipe) noteId: string, // ✅ Changed from ParseUUIDPipe to custom pipe
   ): Promise<NoteResponseDto> {
-    // ✅ Extract user ID with fallback
     const finalUserId = this.extractUserId(userId, req);
     return this.notesService.getNoteById(finalUserId, noteId);
   }
@@ -263,8 +293,9 @@ export class NotesController {
   @ApiOperation({ summary: "Update a note" })
   @ApiParam({
     name: "id",
-    description: "Note ID (UUID)",
+    description: "Note ID (UUID or CUID format)",
     type: String,
+    example: "cmsbm0qzP0085zc3ppkakjikx",
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -283,14 +314,13 @@ export class NotesController {
     status: HttpStatus.BAD_REQUEST,
     description: "Invalid input data",
   })
-  @Throttle({ default: { limit: 30, ttl: 60000 } }) // Rate limit: 30 requests per minute
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async updateNote(
     @CurrentUser("id") userId: string,
-    @Req() req: Request, // ✅ Added for fallback
-    @Param("id", ParseUUIDPipe) noteId: string,
+    @Req() req: Request,
+    @Param("id", ParseIdPipe) noteId: string, // ✅ Changed from ParseUUIDPipe to custom pipe
     @Body() updateNoteDto: UpdateNoteDto,
   ): Promise<NoteResponseDto> {
-    // ✅ Extract user ID with fallback
     const finalUserId = this.extractUserId(userId, req);
     return this.notesService.updateNote(finalUserId, noteId, updateNoteDto);
   }
@@ -304,8 +334,9 @@ export class NotesController {
   @ApiOperation({ summary: "Delete a note" })
   @ApiParam({
     name: "id",
-    description: "Note ID (UUID)",
+    description: "Note ID (UUID or CUID format)",
     type: String,
+    example: "cmsbm0qzP0085zc3ppkakjikx",
   })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
@@ -323,13 +354,12 @@ export class NotesController {
     status: HttpStatus.UNAUTHORIZED,
     description: "User not authenticated",
   })
-  @Throttle({ default: { limit: 15, ttl: 60000 } }) // Rate limit: 15 requests per minute (more restrictive for deletes)
+  @Throttle({ default: { limit: 15, ttl: 60000 } })
   async deleteNote(
     @CurrentUser("id") userId: string,
-    @Req() req: Request, // ✅ Added for fallback
-    @Param("id", ParseUUIDPipe) noteId: string,
+    @Req() req: Request,
+    @Param("id", ParseIdPipe) noteId: string, // ✅ Changed from ParseUUIDPipe to custom pipe
   ): Promise<void> {
-    // ✅ Extract user ID with fallback
     const finalUserId = this.extractUserId(userId, req);
     await this.notesService.deleteNote(finalUserId, noteId);
   }
@@ -342,8 +372,9 @@ export class NotesController {
   @ApiOperation({ summary: "Toggle favorite status of a note" })
   @ApiParam({
     name: "id",
-    description: "Note ID (UUID)",
+    description: "Note ID (UUID or CUID format)",
     type: String,
+    example: "cmsbm0qzP0085zc3ppkakjikx",
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -358,13 +389,12 @@ export class NotesController {
     status: HttpStatus.FORBIDDEN,
     description: "User does not own this note",
   })
-  @Throttle({ default: { limit: 60, ttl: 60000 } }) // Rate limit: 60 requests per minute (lightweight operation)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   async toggleFavorite(
     @CurrentUser("id") userId: string,
-    @Req() req: Request, // ✅ Added for fallback
-    @Param("id", ParseUUIDPipe) noteId: string,
+    @Req() req: Request,
+    @Param("id", ParseIdPipe) noteId: string, // ✅ Changed from ParseUUIDPipe to custom pipe
   ): Promise<NoteResponseDto> {
-    // ✅ Extract user ID with fallback
     const finalUserId = this.extractUserId(userId, req);
     return this.notesService.toggleFavorite(finalUserId, noteId);
   }
@@ -377,8 +407,9 @@ export class NotesController {
   @ApiOperation({ summary: "Toggle archive status of a note" })
   @ApiParam({
     name: "id",
-    description: "Note ID (UUID)",
+    description: "Note ID (UUID or CUID format)",
     type: String,
+    example: "cmsbm0qzP0085zc3ppkakjikx",
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -393,13 +424,12 @@ export class NotesController {
     status: HttpStatus.FORBIDDEN,
     description: "User does not own this note",
   })
-  @Throttle({ default: { limit: 60, ttl: 60000 } }) // Rate limit: 60 requests per minute (lightweight operation)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   async toggleArchive(
     @CurrentUser("id") userId: string,
-    @Req() req: Request, // ✅ Added for fallback
-    @Param("id", ParseUUIDPipe) noteId: string,
+    @Req() req: Request,
+    @Param("id", ParseIdPipe) noteId: string, // ✅ Changed from ParseUUIDPipe to custom pipe
   ): Promise<NoteResponseDto> {
-    // ✅ Extract user ID with fallback
     const finalUserId = this.extractUserId(userId, req);
     return this.notesService.toggleArchive(finalUserId, noteId);
   }
