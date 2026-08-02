@@ -1,6 +1,10 @@
 // backend/src/common/decorators/current-user.decorator.ts
 
-import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+import {
+  createParamDecorator,
+  ExecutionContext,
+  UnauthorizedException,
+} from "@nestjs/common";
 
 /**
  * Custom decorator to extract the authenticated user from the request
@@ -21,39 +25,31 @@ export const CurrentUser = createParamDecorator(
   (data: string | undefined, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
 
-    // ✅ FIX: Check if user exists on request
+    // ✅ Check if user exists on request
     if (!request.user) {
-      // If no user, return undefined (will be caught by guards)
-      return data ? undefined : undefined;
+      throw new UnauthorizedException("User not authenticated");
     }
 
-    // If data is provided, return that specific property
-    // e.g., @CurrentUser('id') returns user.id
-    if (data) {
-      // ✅ FIX: Handle nested properties (e.g., user.id, user.sub)
-      // JWT typically stores user ID in 'sub' or 'id'
-      const user = request.user;
+    const user = request.user;
 
-      // Try to get the property directly
+    // If data is provided, return that specific property
+    if (data) {
+      // ✅ Try multiple possible field names
+      // Priority: exact match > id > userId > sub
       if (user[data] !== undefined) {
         return user[data];
       }
 
-      // If property not found, check if it's in 'sub' (common JWT pattern)
-      if (data === "id" && user.sub !== undefined) {
-        return user.sub;
-      }
-
-      // If property not found, check if it's a nested property
-      // e.g., user.id, user.userId
+      // If looking for 'id', try common alternatives
       if (data === "id") {
-        return user.id || user.sub || user.userId;
+        return user.id || user.userId || user.sub;
       }
 
-      return user[data];
+      // For other fields, try common alternatives
+      return user[data] || user[data.toLowerCase()] || user[data.toUpperCase()];
     }
 
     // Otherwise return the entire user object
-    return request.user;
+    return user;
   },
 );
