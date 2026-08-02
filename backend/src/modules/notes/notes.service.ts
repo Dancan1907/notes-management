@@ -4,8 +4,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-  BadRequestException,
-} from "@nestjs/common";
+} from "@nestjs/common"; // ✅ Removed BadRequestException
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateNoteDto } from "./dto/create-note.dto";
 import { UpdateNoteDto } from "./dto/update-note.dto";
@@ -47,7 +46,8 @@ export class NotesService {
     try {
       const note = await this.prisma.note.create({
         data: {
-          title: createNoteDto.title,
+          // ✅ Fixed: Ensure title is always a string (validation ensures it exists)
+          title: createNoteDto.title!,
           content: createNoteDto.content,
           color: createNoteDto.color,
           userId: userId,
@@ -215,8 +215,13 @@ export class NotesService {
       this.logger.info({ noteId, userId }, "Note updated successfully");
       return this.toResponseDto(updatedNote);
     } catch (error) {
-      // Handle Prisma record not found error (shouldn't happen due to getNoteById check)
-      if (error.code === "P2025") {
+      // ✅ Fixed: Check if error is a Prisma error with code property
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "P2025"
+      ) {
         throw new NotFoundException(`Note with ID ${noteId} not found`);
       }
       this.logger.error({ error, userId, noteId }, "Failed to update note");
@@ -245,7 +250,13 @@ export class NotesService {
 
       this.logger.info({ noteId, userId }, "Note deleted successfully");
     } catch (error) {
-      if (error.code === "P2025") {
+      // ✅ Fixed: Check if error is a Prisma error with code property
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "P2025"
+      ) {
         throw new NotFoundException(`Note with ID ${noteId} not found`);
       }
       this.logger.error({ error, userId, noteId }, "Failed to delete note");
