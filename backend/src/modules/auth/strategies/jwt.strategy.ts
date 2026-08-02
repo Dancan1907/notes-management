@@ -3,23 +3,19 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
-import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    private configService: ConfigService,
-    private prisma: PrismaService,
-  ) {
+  constructor(private prisma: PrismaService) {
     // PassportStrategy calls super with configuration
     super({
       // Extract JWT from the Authorization header as Bearer token
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       // Reject expired tokens
       ignoreExpiration: false,
-      // Secret key for verifying the token
-      secretOrKey: configService.get<string>("JWT_SECRET")!,
+      // Secret key for verifying the token - use process.env directly
+      secretOrKey: process.env.JWT_SECRET!,
     });
   }
 
