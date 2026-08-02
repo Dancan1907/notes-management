@@ -20,15 +20,40 @@ import { createParamDecorator, ExecutionContext } from "@nestjs/common";
 export const CurrentUser = createParamDecorator(
   (data: string | undefined, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    const user = request.user;
+
+    // ✅ FIX: Check if user exists on request
+    if (!request.user) {
+      // If no user, return undefined (will be caught by guards)
+      return data ? undefined : undefined;
+    }
 
     // If data is provided, return that specific property
     // e.g., @CurrentUser('id') returns user.id
     if (data) {
-      return user?.[data];
+      // ✅ FIX: Handle nested properties (e.g., user.id, user.sub)
+      // JWT typically stores user ID in 'sub' or 'id'
+      const user = request.user;
+
+      // Try to get the property directly
+      if (user[data] !== undefined) {
+        return user[data];
+      }
+
+      // If property not found, check if it's in 'sub' (common JWT pattern)
+      if (data === "id" && user.sub !== undefined) {
+        return user.sub;
+      }
+
+      // If property not found, check if it's a nested property
+      // e.g., user.id, user.userId
+      if (data === "id") {
+        return user.id || user.sub || user.userId;
+      }
+
+      return user[data];
     }
 
     // Otherwise return the entire user object
-    return user;
+    return request.user;
   },
 );
