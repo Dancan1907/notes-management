@@ -12,13 +12,13 @@ import {
   HttpStatus,
   HttpCode,
   UseGuards,
-  ParseUUIDPipe,
+  // ParseUUIDPipe, // ✅ REMOVED - no longer used
   DefaultValuePipe,
   ParseBoolPipe,
   ParseIntPipe,
   Req,
   UnauthorizedException,
-  BadRequestException, // ✅ Added for custom validation
+  BadRequestException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -279,7 +279,7 @@ export class NotesController {
   async getNote(
     @CurrentUser("id") userId: string,
     @Req() req: Request,
-    @Param("id", ParseIdPipe) noteId: string, // ✅ Changed from ParseUUIDPipe to custom pipe
+    @Param("id", ParseIdPipe) noteId: string,
   ): Promise<NoteResponseDto> {
     const finalUserId = this.extractUserId(userId, req);
     return this.notesService.getNoteById(finalUserId, noteId);
@@ -318,7 +318,7 @@ export class NotesController {
   async updateNote(
     @CurrentUser("id") userId: string,
     @Req() req: Request,
-    @Param("id", ParseIdPipe) noteId: string, // ✅ Changed from ParseUUIDPipe to custom pipe
+    @Param("id", ParseIdPipe) noteId: string,
     @Body() updateNoteDto: UpdateNoteDto,
   ): Promise<NoteResponseDto> {
     const finalUserId = this.extractUserId(userId, req);
@@ -358,7 +358,7 @@ export class NotesController {
   async deleteNote(
     @CurrentUser("id") userId: string,
     @Req() req: Request,
-    @Param("id", ParseIdPipe) noteId: string, // ✅ Changed from ParseUUIDPipe to custom pipe
+    @Param("id", ParseIdPipe) noteId: string,
   ): Promise<void> {
     const finalUserId = this.extractUserId(userId, req);
     await this.notesService.deleteNote(finalUserId, noteId);
@@ -393,7 +393,7 @@ export class NotesController {
   async toggleFavorite(
     @CurrentUser("id") userId: string,
     @Req() req: Request,
-    @Param("id", ParseIdPipe) noteId: string, // ✅ Changed from ParseUUIDPipe to custom pipe
+    @Param("id", ParseIdPipe) noteId: string,
   ): Promise<NoteResponseDto> {
     const finalUserId = this.extractUserId(userId, req);
     return this.notesService.toggleFavorite(finalUserId, noteId);
@@ -428,7 +428,7 @@ export class NotesController {
   async toggleArchive(
     @CurrentUser("id") userId: string,
     @Req() req: Request,
-    @Param("id", ParseIdPipe) noteId: string, // ✅ Changed from ParseUUIDPipe to custom pipe
+    @Param("id", ParseIdPipe) noteId: string,
   ): Promise<NoteResponseDto> {
     const finalUserId = this.extractUserId(userId, req);
     return this.notesService.toggleArchive(finalUserId, noteId);
