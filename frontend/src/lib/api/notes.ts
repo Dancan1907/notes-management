@@ -1,12 +1,8 @@
 // frontend/src/lib/api/notes.ts
 
-import axiosInstance from "./axios";
-import {
-  Note,
-  CreateNoteDto,
-  UpdateNoteDto,
-  NotesResponse,
-} from "@/types/notes";
+// ✅ FIX: Import from the correct path - already exists
+import axiosInstance from '../axios';
+import { Note, CreateNoteDto, UpdateNoteDto, NotesResponse } from '@/types/notes';
 
 /**
  * Notes API Service - All note-related API calls
@@ -15,7 +11,7 @@ import {
  * Uses the axios instance with automatic JWT token injection.
  */
 
-const NOTES_BASE_URL = "/notes";
+const NOTES_BASE_URL = '/notes';
 
 /**
  * Get all notes with optional filters and pagination
@@ -52,14 +48,8 @@ export const createNote = async (data: CreateNoteDto): Promise<Note> => {
 /**
  * Update an existing note
  */
-export const updateNote = async (
-  id: string,
-  data: UpdateNoteDto,
-): Promise<Note> => {
-  const response = await axiosInstance.patch<Note>(
-    `${NOTES_BASE_URL}/${id}`,
-    data,
-  );
+export const updateNote = async (id: string, data: UpdateNoteDto): Promise<Note> => {
+  const response = await axiosInstance.patch<Note>(`${NOTES_BASE_URL}/${id}`, data);
   return response.data;
 };
 
@@ -74,9 +64,7 @@ export const deleteNote = async (id: string): Promise<void> => {
  * Toggle favorite status of a note
  */
 export const toggleFavorite = async (id: string): Promise<Note> => {
-  const response = await axiosInstance.patch<Note>(
-    `${NOTES_BASE_URL}/${id}/favorite`,
-  );
+  const response = await axiosInstance.patch<Note>(`${NOTES_BASE_URL}/${id}/favorite`);
   return response.data;
 };
 
@@ -84,8 +72,6 @@ export const toggleFavorite = async (id: string): Promise<Note> => {
  * Toggle archive status of a note
  */
 export const toggleArchive = async (id: string): Promise<Note> => {
-  const response = await axiosInstance.patch<Note>(
-    `${NOTES_BASE_URL}/${id}/archive`,
-  );
+  const response = await axiosInstance.patch<Note>(`${NOTES_BASE_URL}/${id}/archive`);
   return response.data;
 };
