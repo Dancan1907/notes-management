@@ -2,7 +2,6 @@
 
 import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
-// ✅ FIX: Use default import for supertest
 import request from "supertest";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../prisma/prisma.service";
@@ -52,12 +51,14 @@ describe("NotesController (Integration)", () => {
       password,
     });
 
-    // ✅ FIX: Check both possible property names
-    // The login response might have 'access_token' or 'accessToken'
-    if ("access_token" in loginResult) {
-      accessToken = loginResult.access_token;
-    } else if ("accessToken" in loginResult) {
-      accessToken = loginResult.accessToken;
+    // ✅ FIX: Properly type the login response
+    // The login response can have different shapes, handle both
+    const result = loginResult as any;
+
+    if (result.access_token) {
+      accessToken = result.access_token;
+    } else if (result.accessToken) {
+      accessToken = result.accessToken;
     } else {
       throw new Error("No access token found in login response");
     }
