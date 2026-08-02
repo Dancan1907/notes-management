@@ -1,0 +1,64 @@
+// backend/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  name         String?
+  avatar       String?  // URL to avatar image
+  role         Role     @default(USER)
+  isActive     Boolean  @default(true)
+  emailVerified Boolean @default(false)
+  refreshToken String?  @unique   // <-- NEW: stores the current valid refresh token
+
+  // Email verification fields
+  verificationToken      String?  @unique
+  verificationTokenExpiry DateTime?
+  
+  // Password reset fields
+  resetToken      String?  @unique
+  resetTokenExpiry DateTime?
+  
+ // 2FA fields
+  twoFactorSecret    String?   // Base32 secret for TOTP
+  isTwoFactorEnabled Boolean   @default(false)
+  backupCodes        String?   // JSON array of hashed backup codes
+
+  // Audit log relation (opposite side of AuditLog.user)
+  auditLogs    AuditLog[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime? // Soft-delete marker; null = active, non-null = deleted
+
+  @@index([email])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  action    String
+  resource  String?  // e.g., 'User', 'Role'
+  resourceId String? @map("resource_id")
+  details   Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+enum Role {
+  ADMIN
+  USER
+}

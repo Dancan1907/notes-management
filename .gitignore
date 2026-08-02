@@ -1,0 +1,38 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# next.js
+.next
+out
+
+# nestjs
+dist
+build
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# logs
+logs
+*.log
+
+# turbo
+.turbo
+
+# IDE
+.vscode
+.idea
+
+# misc
+.DS_Store
+*.pem
+
+# Uploads
+uploads/
