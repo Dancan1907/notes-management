@@ -159,12 +159,16 @@ export class NotesController {
     )
     offset?: number,
   ) {
+    // ✅ Fixed: Use nullish coalescing to ensure limit is always a number
+    const safeLimit = limit ?? 10;
+    const safeOffset = offset ?? 0;
+
     return this.notesService.getNotes(userId, {
       search,
       isArchived,
       isFavorite,
-      limit: Math.min(limit, 100), // Max limit 100 to prevent overloading
-      offset,
+      limit: Math.min(safeLimit, 100), // Max limit 100 to prevent overloading
+      offset: safeOffset,
     });
   }
 
