@@ -30,7 +30,6 @@ const mockLogger = {
 
 describe("NotesService", () => {
   let service: NotesService;
-  let prisma: PrismaService;
 
   const mockUserId = "user-123";
   const mockNoteId = "note-456";
@@ -62,7 +61,6 @@ describe("NotesService", () => {
     }).compile();
 
     service = module.get<NotesService>(NotesService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {
