@@ -1,3 +1,5 @@
+// backend/src/app.module.ts
+
 import { Module, NestModule, MiddlewareConsumer } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import * as Joi from "joi";
@@ -13,6 +15,8 @@ import emailConfig from "./config/email.config";
 import { FilesModule } from "./modules/files/files.module";
 import { HealthModule } from "./modules/health/health.module";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
+// ✅ NEW IMPORT: Notes module for notes management
+import { NotesModule } from "./modules/notes/notes.module";
 
 @Module({
   imports: [
@@ -56,6 +60,8 @@ import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
     EmailModule,
     FilesModule,
     HealthModule,
+    // ✅ NEW: Notes module for note management system
+    NotesModule,
   ],
   providers: [
     {
