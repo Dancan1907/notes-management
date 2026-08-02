@@ -1,4 +1,5 @@
 // backend/prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,7 +18,7 @@ model User {
   role         Role     @default(USER)
   isActive     Boolean  @default(true)
   emailVerified Boolean @default(false)
-  refreshToken String?  @unique   // <-- NEW: stores the current valid refresh token
+  refreshToken String?  @unique   // stores the current valid refresh token
 
   // Email verification fields
   verificationToken      String?  @unique
@@ -27,13 +28,16 @@ model User {
   resetToken      String?  @unique
   resetTokenExpiry DateTime?
   
- // 2FA fields
+  // 2FA fields
   twoFactorSecret    String?   // Base32 secret for TOTP
   isTwoFactorEnabled Boolean   @default(false)
   backupCodes        String?   // JSON array of hashed backup codes
 
   // Audit log relation (opposite side of AuditLog.user)
   auditLogs    AuditLog[]
+
+  // ✅ NEW: One-to-Many relationship with Notes
+  notes        Note[]     // A user can have many notes
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -56,6 +60,31 @@ model AuditLog {
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
+}
+
+// ✅ NEW MODEL: Notes Management System
+model Note {
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(255)  // Required - max 255 chars
+  content     String?  @db.Text          // Optional - supports Markdown/rich text
+  color       String?  @db.VarChar(50)   // Optional - hex color code or color name (e.g., '#f9f9f9', 'yellow')
+  isFavorite  Boolean  @default(false)   // Pin/favorite notes for quick access
+  isArchived  Boolean  @default(false)   // Hide notes without deleting them
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Key: Each note belongs to exactly one user
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Database Indexes for Performance
+  @@index([userId])                    // Speed up queries filtering by user
+  @@index([userId, isArchived])        // Speed up filtering active vs archived notes
+  @@index([userId, isFavorite])        // Speed up filtering favorite notes
+  
+  @@map("notes")
 }
 
 enum Role {
