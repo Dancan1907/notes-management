@@ -3,3 +3,28 @@
 @tailwind utilities;
 
 /* Dark mode is handled via 'dark' class on html element */
+/* These CSS variables provide a fallback and prevent white flash */
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-start-rgb));
+}
+
+/* Optional: smooth transition when theme toggles */
+* {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
