@@ -1,29 +1,31 @@
 // backend/src/modules/email/email.service.ts
-import { Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import * as nodemailer from "nodemailer";
-import { Logger } from "nestjs-pino";
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Resend } from 'resend';
+import { Logger } from 'nestjs-pino';
 
 @Injectable()
 export class EmailService {
-  private transporter: nodemailer.Transporter;
+  private resend: Resend;
+  private fromEmail: string;
+  private fromName: string;
 
   constructor(
     private configService: ConfigService,
-    private logger: Logger,
+    private logger: Logger
   ) {
-    // Create email transporter using SMTP settings
-    const emailConfig = this.configService.get("email");
-    this.transporter = nodemailer.createTransport({
-      host: emailConfig.host,
-      port: emailConfig.port,
-      secure: emailConfig.secure,
-      auth: {
-        user: emailConfig.auth.user,
-        pass: emailConfig.auth.pass,
-      },
-    });
-    this.logger.log("Email service initialized");
+    // Initialize Resend with API key
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    if (!apiKey) {
+      this.logger.warn('RESEND_API_KEY not found in environment variables');
+    }
+    this.resend = new Resend(apiKey || '');
+
+    const emailConfig = this.configService.get('email');
+    this.fromEmail = emailConfig?.from || 'onboarding@resend.dev';
+    this.fromName = emailConfig?.fromName || 'Notes App';
+
+    this.logger.log('Email service initialized with Resend');
   }
 
   /**
@@ -32,17 +34,10 @@ export class EmailService {
   async sendVerificationEmail(
     to: string,
     name: string | null,
-    verificationToken: string,
+    verificationToken: string
   ): Promise<void> {
-    const frontendUrl = this.configService.get<string>(
-      "FRONTEND_URL",
-      "http://localhost:3000",
-    );
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
     const verifyUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
-
-    const emailConfig = this.configService.get("email");
-    const fromName = emailConfig.fromName;
-    const fromEmail = emailConfig.from;
 
     const html = `
       <!DOCTYPE html>
@@ -59,7 +54,7 @@ export class EmailService {
       </head>
       <body>
         <div class="container">
-          <h1>Welcome${name ? ", " + name : ""}!</h1>
+          <h1>Welcome${name ? ', ' + name : ''}!</h1>
           <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
           <p style="text-align: center; margin: 30px 0;">
             <a href="${verifyUrl}" class="button">Verify Email</a>
@@ -76,7 +71,7 @@ export class EmailService {
     `;
 
     const text = `
-      Welcome${name ? ", " + name : ""}!
+      Welcome${name ? ', ' + name : ''}!
       Thank you for registering. Please verify your email address by clicking the link below:
       ${verifyUrl}
       This link will expire in 24 hours.
@@ -84,19 +79,22 @@ export class EmailService {
     `;
 
     try {
-      await this.transporter.sendMail({
-        from: `"${fromName}" <${fromEmail}>`,
-        to,
-        subject: "Verify Your Email",
+      const { data, error } = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [to],
+        subject: 'Verify Your Email',
         html,
         text,
       });
-      this.logger.log(`Verification email sent to ${to}`);
+
+      if (error) {
+        this.logger.error({ error }, `Failed to send verification email to ${to}`);
+        throw new Error(error.message);
+      }
+
+      this.logger.log(`Verification email sent to ${to} (ID: ${data?.id})`);
     } catch (error) {
-      this.logger.error(
-        { error },
-        `Failed to send verification email to ${to}`,
-      );
+      this.logger.error({ error }, `Failed to send verification email to ${to}`);
       throw error;
     }
   }
@@ -104,20 +102,9 @@ export class EmailService {
   /**
    * Send a password reset email with a token link
    */
-  async sendPasswordResetEmail(
-    to: string,
-    name: string | null,
-    resetToken: string,
-  ): Promise<void> {
-    const frontendUrl = this.configService.get<string>(
-      "FRONTEND_URL",
-      "http://localhost:3000",
-    );
+  async sendPasswordResetEmail(to: string, name: string | null, resetToken: string): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-
-    const emailConfig = this.configService.get("email");
-    const fromName = emailConfig.fromName;
-    const fromEmail = emailConfig.from;
 
     const html = `
       <!DOCTYPE html>
@@ -135,7 +122,7 @@ export class EmailService {
       </head>
       <body>
         <div class="container">
-          <h1>Password Reset Request${name ? ", " + name : ""}</h1>
+          <h1>Password Reset Request${name ? ', ' + name : ''}</h1>
           <p>We received a request to reset your password. Click the button below to set a new password:</p>
           <p style="text-align: center; margin: 30px 0;">
             <a href="${resetUrl}" class="button">Reset Password</a>
@@ -156,7 +143,7 @@ export class EmailService {
     `;
 
     const text = `
-      Password Reset Request${name ? ", " + name : ""}
+      Password Reset Request${name ? ', ' + name : ''}
 
       We received a request to reset your password. Click the link below to set a new password:
       ${resetUrl}
@@ -170,20 +157,22 @@ export class EmailService {
     `;
 
     try {
-      await this.transporter.sendMail({
-        from: `"${fromName}" <${fromEmail}>`,
-        to,
-        subject: "Reset Your Password",
+      const { data, error } = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [to],
+        subject: 'Reset Your Password',
         html,
         text,
       });
-      this.logger.log(`Password reset email sent to ${to}`);
+
+      if (error) {
+        this.logger.error({ error }, `Failed to send password reset email to ${to}`);
+        throw new Error(error.message);
+      }
+
+      this.logger.log(`Password reset email sent to ${to} (ID: ${data?.id})`);
     } catch (error) {
-      this.logger.error(
-        { error },
-        `Failed to send password reset email to ${to}`,
-      );
-      // Don't throw – we want the user to know something went wrong
+      this.logger.error({ error }, `Failed to send password reset email to ${to}`);
       throw error;
     }
   }
