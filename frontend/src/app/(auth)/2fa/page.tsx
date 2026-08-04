@@ -5,15 +5,7 @@ import { useState, useEffect, FormEvent, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { isAxiosError } from 'axios';
-import {
-  Shield,
-  ArrowLeft,
-  Lock,
-  KeyRound,
-  CheckCircle,
-  AlertCircle,
-  Smartphone,
-} from 'lucide-react';
+import { Shield, ArrowLeft, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 
 function TwoFactorContent() {
   const [code, setCode] = useState(['', '', '', '', '', '']);
