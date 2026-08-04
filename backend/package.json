@@ -5,6 +5,10 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
     "lint": "eslint . --ext .ts",
     "clean": "rm -rf dist",
     "test": "jest",
@@ -17,7 +21,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
-    "generate-api": "openapi-generator-cli generate -i http://localhost:3001/api/docs-json -g typescript-axios -o ../frontend/src/lib/api"
+    "generate-api": "openapi-generator-cli generate -i http://localhost:3001/api/docs-json -g typescript-axios -o ../frontend/src/lib/api",
+    "prepare": "husky"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
