@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { isAxiosError } from 'axios';
 import api from '@/lib/axios';
-import { Mail, CheckCircle, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();

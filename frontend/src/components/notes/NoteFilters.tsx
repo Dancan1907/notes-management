@@ -1,9 +1,9 @@
 // frontend/src/components/notes/NoteFilters.tsx
 
-"use client";
+'use client';
 
-import { Filter, X } from "lucide-react";
-import { useState } from "react";
+import { Filter } from 'lucide-react';
+import { useState } from 'react';
 
 interface NoteFiltersProps {
   isArchived: boolean;
@@ -42,8 +42,8 @@ export const NoteFilters = ({
           transition-colors
           ${
             hasFilters
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-              : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+              : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
           }
         `}
       >
@@ -56,9 +56,7 @@ export const NoteFilters = ({
       {isOpen && (
         <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-10">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-gray-900 dark:text-white">
-              Filters
-            </h4>
+            <h4 className="font-medium text-gray-900 dark:text-white">Filters</h4>
             {hasFilters && (
               <button
                 onClick={() => {
@@ -81,9 +79,7 @@ export const NoteFilters = ({
               className="w-4 h-4 text-blue-600 rounded border-gray-300 
                        focus:ring-blue-500 focus:ring-2"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">
-              Show archived
-            </span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">Show archived</span>
           </label>
 
           {/* Favorite Filter */}
@@ -95,9 +91,7 @@ export const NoteFilters = ({
               className="w-4 h-4 text-blue-600 rounded border-gray-300 
                        focus:ring-blue-500 focus:ring-2"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">
-              Show favorites only
-            </span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">Show favorites only</span>
           </label>
         </div>
       )}
