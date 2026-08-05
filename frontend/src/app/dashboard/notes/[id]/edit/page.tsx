@@ -1,13 +1,14 @@
 // frontend/src/app/dashboard/notes/[id]/edit/page.tsx
 
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useNotes } from "@/hooks/useNotes";
-import NoteEditor from "@/components/notes/NoteEditor";
-import { Note } from "@/types/notes";
-import { getNoteById } from "@/lib/api/notes";
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { isAxiosError } from 'axios';
+import { useNotes } from '@/hooks/useNotes';
+import NoteEditor from '@/components/notes/NoteEditor';
+import { Note } from '@/types/notes';
+import { getNoteById } from '@/lib/api/notes';
 
 /**
  * Edit Note Page
@@ -30,12 +31,12 @@ export default function EditNotePage() {
         setLoading(true);
         const data = await getNoteById(noteId);
         setNote(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         const errorMessage =
-          err.response?.data?.message || "Failed to load note";
+          (isAxiosError(err) && err.response?.data?.message) || 'Failed to load note';
         setError(errorMessage);
         // Redirect after a moment
-        setTimeout(() => router.push("/dashboard/notes"), 2000);
+        setTimeout(() => router.push('/dashboard/notes'), 2000);
       } finally {
         setLoading(false);
       }
@@ -44,11 +45,7 @@ export default function EditNotePage() {
     fetchNote();
   }, [noteId, router]);
 
-  const handleSave = async (data: {
-    title: string;
-    content?: string;
-    color?: string;
-  }) => {
+  const handleSave = async (data: { title: string; content?: string; color?: string }) => {
     await updateNote(noteId, data);
   };
 
@@ -76,11 +73,9 @@ export default function EditNotePage() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
-            {error || "Note not found"}
+            {error || 'Note not found'}
           </h2>
-          <p className="text-gray-500 dark:text-gray-400">
-            Redirecting to notes list...
-          </p>
+          <p className="text-gray-500 dark:text-gray-400">Redirecting to notes list...</p>
         </div>
       </div>
     );
@@ -88,12 +83,7 @@ export default function EditNotePage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <NoteEditor
-        note={note}
-        onSave={handleSave}
-        onDelete={handleDelete}
-        isLoading={loading}
-      />
+      <NoteEditor note={note} onSave={handleSave} onDelete={handleDelete} isLoading={loading} />
     </div>
   );
 }

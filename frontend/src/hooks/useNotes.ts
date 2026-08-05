@@ -1,9 +1,10 @@
 // frontend/src/hooks/useNotes.ts
 
-import { useState, useEffect, useCallback } from "react";
-import { Note, NotesQueryParams, NotesFilterState } from "@/types/notes";
-import * as notesApi from "@/lib/api/notes";
-import { toast } from "sonner";
+import { useState, useEffect, useCallback } from 'react';
+import { Note, NotesQueryParams, NotesFilterState, UpdateNoteDto } from '@/types/notes';
+import * as notesApi from '@/lib/api/notes';
+import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
 
 /**
  * Custom hook for managing notes with loading and error states
@@ -35,9 +36,9 @@ export const useNotes = (initialParams: NotesQueryParams = {}) => {
       const response = await notesApi.getNotes(params);
       setNotes(response.data);
       setTotal(response.total);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage =
-        err.response?.data?.message || "Failed to fetch notes";
+        (isAxiosError(err) && err.response?.data?.message) || 'Failed to fetch notes';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -53,32 +54,30 @@ export const useNotes = (initialParams: NotesQueryParams = {}) => {
       try {
         const newNote = await notesApi.createNote(data);
         setNotes((prev) => [newNote, ...prev]);
-        toast.success("Note created successfully!");
+        toast.success('Note created successfully!');
         return newNote;
-      } catch (err: any) {
+      } catch (err: unknown) {
         const errorMessage =
-          err.response?.data?.message || "Failed to create note";
+          (isAxiosError(err) && err.response?.data?.message) || 'Failed to create note';
         toast.error(errorMessage);
         throw err;
       }
     },
-    [],
+    []
   );
 
   /**
    * Update an existing note
    */
-  const updateNote = useCallback(async (id: string, data: any) => {
+  const updateNote = useCallback(async (id: string, data: UpdateNoteDto) => {
     try {
       const updatedNote = await notesApi.updateNote(id, data);
-      setNotes((prev) =>
-        prev.map((note) => (note.id === id ? updatedNote : note)),
-      );
-      toast.success("Note updated successfully!");
+      setNotes((prev) => prev.map((note) => (note.id === id ? updatedNote : note)));
+      toast.success('Note updated successfully!');
       return updatedNote;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage =
-        err.response?.data?.message || "Failed to update note";
+        (isAxiosError(err) && err.response?.data?.message) || 'Failed to update note';
       toast.error(errorMessage);
       throw err;
     }
@@ -92,10 +91,10 @@ export const useNotes = (initialParams: NotesQueryParams = {}) => {
       await notesApi.deleteNote(id);
       setNotes((prev) => prev.filter((note) => note.id !== id));
       setTotal((prev) => prev - 1);
-      toast.success("Note deleted successfully!");
-    } catch (err: any) {
+      toast.success('Note deleted successfully!');
+    } catch (err: unknown) {
       const errorMessage =
-        err.response?.data?.message || "Failed to delete note";
+        (isAxiosError(err) && err.response?.data?.message) || 'Failed to delete note';
       toast.error(errorMessage);
       throw err;
     }
@@ -107,12 +106,10 @@ export const useNotes = (initialParams: NotesQueryParams = {}) => {
   const toggleFavorite = useCallback(async (id: string) => {
     try {
       const updatedNote = await notesApi.toggleFavorite(id);
-      setNotes((prev) =>
-        prev.map((note) => (note.id === id ? updatedNote : note)),
-      );
-    } catch (err: any) {
+      setNotes((prev) => prev.map((note) => (note.id === id ? updatedNote : note)));
+    } catch (err: unknown) {
       const errorMessage =
-        err.response?.data?.message || "Failed to toggle favorite";
+        (isAxiosError(err) && err.response?.data?.message) || 'Failed to toggle favorite';
       toast.error(errorMessage);
       throw err;
     }
@@ -124,15 +121,11 @@ export const useNotes = (initialParams: NotesQueryParams = {}) => {
   const toggleArchive = useCallback(async (id: string) => {
     try {
       const updatedNote = await notesApi.toggleArchive(id);
-      setNotes((prev) =>
-        prev.map((note) => (note.id === id ? updatedNote : note)),
-      );
-      toast.success(
-        updatedNote.isArchived ? "Note archived!" : "Note unarchived!",
-      );
-    } catch (err: any) {
+      setNotes((prev) => prev.map((note) => (note.id === id ? updatedNote : note)));
+      toast.success(updatedNote.isArchived ? 'Note archived!' : 'Note unarchived!');
+    } catch (err: unknown) {
       const errorMessage =
-        err.response?.data?.message || "Failed to toggle archive";
+        (isAxiosError(err) && err.response?.data?.message) || 'Failed to toggle archive';
       toast.error(errorMessage);
       throw err;
     }
