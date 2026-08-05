@@ -1,14 +1,14 @@
 // frontend/src/app/dashboard/notes/page.tsx
 
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useNotes } from "@/hooks/useNotes";
-import NoteList from "@/components/notes/NoteList";
-import NoteSearchBar from "@/components/notes/NoteSearchBar";
-import NoteFilters from "@/components/notes/NoteFilters";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useNotes } from '@/hooks/useNotes';
+import NoteList from '@/components/notes/NoteList';
+import NoteSearchBar from '@/components/notes/NoteSearchBar';
+import NoteFilters from '@/components/notes/NoteFilters';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
  * Notes Dashboard Page
@@ -17,7 +17,7 @@ import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
  */
 export default function NotesPage() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [isArchived, setIsArchived] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -26,7 +26,6 @@ export default function NotesPage() {
     total,
     loading,
     params,
-    createNote,
     deleteNote,
     toggleFavorite,
     toggleArchive,
@@ -42,7 +41,7 @@ export default function NotesPage() {
   });
 
   const handleCreateNote = () => {
-    router.push("/dashboard/notes/new");
+    router.push('/dashboard/notes/new');
   };
 
   const handleSearchChange = (value: string) => {
@@ -61,7 +60,7 @@ export default function NotesPage() {
   };
 
   const handleResetFilters = () => {
-    setSearch("");
+    setSearch('');
     setIsArchived(false);
     setIsFavorite(false);
     resetFilters();
@@ -82,11 +81,9 @@ export default function NotesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Notes
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Notes</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {total} {total === 1 ? "note" : "notes"} found
+            {total} {total === 1 ? 'note' : 'notes'} found
           </p>
         </div>
         <button
@@ -132,8 +129,8 @@ export default function NotesPage() {
         onCreateNew={handleCreateNote}
         emptyMessage={
           search || isArchived || isFavorite
-            ? "No notes match your filters. Try adjusting your search."
-            : "You have no notes yet. Create your first note!"
+            ? 'No notes match your filters. Try adjusting your search.'
+            : 'You have no notes yet. Create your first note!'
         }
       />
 
@@ -141,8 +138,7 @@ export default function NotesPage() {
       {!loading && notes.length > 0 && (
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Showing {params.offset! + 1} to {params.offset! + notes.length} of{" "}
-            {total} notes
+            Showing {params.offset! + 1} to {params.offset! + notes.length} of {total} notes
           </p>
           <div className="flex items-center gap-2">
             <button
