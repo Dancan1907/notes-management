@@ -3,6 +3,9 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient, Prisma } from '@prisma/client';
 
+// ✅ MiddlewareParams is exported directly from Prisma namespace
+type MiddlewareParams = Prisma.MiddlewareParams;
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
@@ -15,12 +18,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.$connect();
 
     // After connecting, add middleware:
-    // ✅ Fixed: Added proper types for params and next
+    // ✅ Fixed: Use type alias for MiddlewareParams
     this.$use(
-      async (
-        params: Prisma.MiddlewareParams,
-        next: (params: Prisma.MiddlewareParams) => Promise<unknown>
-      ) => {
+      async (params: MiddlewareParams, next: (params: MiddlewareParams) => Promise<unknown>) => {
         if (params.model === 'User' && params.action === 'findMany') {
           params.args = params.args || {};
           params.args.where = { ...params.args.where, deletedAt: null };
