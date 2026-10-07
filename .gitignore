@@ -36,3 +36,5 @@ logs
 
 # Uploads
 uploads/
+.vercel
+.env*
