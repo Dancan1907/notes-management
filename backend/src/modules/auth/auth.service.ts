@@ -4,24 +4,24 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
-} from "@nestjs/common";
+} from '@nestjs/common';
 // JwtService for signing tokens
-import { JwtService } from "@nestjs/jwt";
+import { JwtService } from '@nestjs/jwt';
 // Prisma service to interact with database
-import { PrismaService } from "../prisma/prisma.service";
+import { PrismaService } from '../prisma/prisma.service';
 // Argon2 for password hashing and verification
-import * as argon2 from "argon2";
+import * as argon2 from 'argon2';
 // DTOs
-import { RegisterDto } from "./dto/register.dto";
-import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 // Prisma types (User, Role)
-import { User, Role } from "@prisma/client";
+import { User, Role } from '@prisma/client';
 // Pino logger for structured logging of critical auth events
-import { Logger } from "nestjs-pino";
+import { Logger } from 'nestjs-pino';
 // EmailService to send verification emails
-import { EmailService } from "../email/email.service";
+import { EmailService } from '../email/email.service';
 // randomBytes to generate a secure verification token
-import { randomBytes } from "crypto";
+import { randomBytes } from 'crypto';
 
 @Injectable() // Marks this class as injectable in NestJS DI container
 export class AuthService {
@@ -30,7 +30,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private readonly logger: Logger, // <-- Inject logger
-    private readonly emailService: EmailService, // <-- inject EmailService
+    private readonly emailService: EmailService // <-- inject EmailService
   ) {}
 
   // ---------- REGISTER ----------
@@ -42,11 +42,9 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (existing) {
-      this.logger.warn(
-        `Registration failed: email ${dto.email} already exists`,
-      );
+      this.logger.warn(`Registration failed: email ${dto.email} already exists`);
       // throw ConflictException (HTTP 409) because email is already taken
-      throw new ConflictException("Email already registered");
+      throw new ConflictException('Email already registered');
     }
 
     // 2. Hash the plain password using argon2
@@ -54,7 +52,7 @@ export class AuthService {
     const hashedPassword = await argon2.hash(dto.password!);
 
     // 3. Generate verification token (24-hour expiry)
-    const verificationToken = randomBytes(32).toString("hex");
+    const verificationToken = randomBytes(32).toString('hex');
     const verificationTokenExpiry = new Date();
     verificationTokenExpiry.setHours(verificationTokenExpiry.getHours() + 24);
 
@@ -77,15 +75,10 @@ export class AuthService {
     this.emailService
       .sendVerificationEmail(dto.email!, dto.name!, verificationToken)
       .catch((error) => {
-        this.logger.error(
-          { error },
-          `Failed to send verification email to ${dto.email}`,
-        );
+        this.logger.error({ error }, `Failed to send verification email to ${dto.email}`);
       });
 
-    this.logger.log(
-      `User registered: ${user.email} (ID: ${user.id}), verification email sent`,
-    );
+    this.logger.log(`User registered: ${user.email} (ID: ${user.id}), verification email sent`);
 
     // 6. Remove password, refreshToken, and verification fields from the user object before returning
     // Using destructuring to exclude them
@@ -99,16 +92,13 @@ export class AuthService {
     // Return user info plus a message prompting email verification
     return {
       user: result,
-      message:
-        "Registration successful. Please check your email to verify your account.",
+      message: 'Registration successful. Please check your email to verify your account.',
     };
   }
 
   // ---------- VERIFY EMAIL ----------
   async verifyEmail(token: string) {
-    this.logger.log(
-      `Email verification attempt with token: ${token.substring(0, 8)}...`,
-    );
+    this.logger.log(`Email verification attempt with token: ${token.substring(0, 8)}...`);
     // Find user with matching verification token
     const user = await this.prisma.user.findFirst({
       where: {
@@ -118,14 +108,12 @@ export class AuthService {
     });
     if (!user) {
       this.logger.warn(`Email verification failed: invalid or expired token`);
-      throw new BadRequestException("Invalid or expired verification token");
+      throw new BadRequestException('Invalid or expired verification token');
     }
     // Check if already verified
     if (user.emailVerified) {
-      this.logger.warn(
-        `Email verification attempt for already verified user: ${user.email}`,
-      );
-      throw new BadRequestException("Email already verified");
+      this.logger.warn(`Email verification attempt for already verified user: ${user.email}`);
+      throw new BadRequestException('Email already verified');
     }
     // Update user: set emailVerified = true, clear verification token
     await this.prisma.user.update({
@@ -137,7 +125,7 @@ export class AuthService {
       },
     });
     this.logger.log(`Email verified successfully: ${user.email}`);
-    return { message: "Email verified successfully. You can now log in." };
+    return { message: 'Email verified successfully. You can now log in.' };
   }
 
   // ---------- LOGIN ----------
@@ -151,21 +139,19 @@ export class AuthService {
     if (!user) {
       this.logger.warn(`Login failed: email ${dto.email} not found`);
       // If no user, return generic Unauthorized to avoid leaking info
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check if email is verified
     if (!user.emailVerified) {
       this.logger.warn(`Login failed: email ${dto.email} not verified`);
-      throw new UnauthorizedException(
-        "Please verify your email before logging in",
-      );
+      throw new UnauthorizedException('Please verify your email before logging in');
     }
 
     // 2. Check if account is active
     if (!user.isActive) {
       this.logger.warn(`Login failed: account ${dto.email} is disabled`);
-      throw new UnauthorizedException("Account is disabled");
+      throw new UnauthorizedException('Account is disabled');
     }
 
     // 3. Verify password using argon2.verify()
@@ -173,7 +159,7 @@ export class AuthService {
     const isValid = await argon2.verify(user.password, dto.password!);
     if (!isValid) {
       this.logger.warn(`Login failed: invalid password for ${dto.email}`);
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     // ─── 2FA CHECK (new) ────────────────────────────────────────
@@ -181,8 +167,8 @@ export class AuthService {
     if (user.isTwoFactorEnabled) {
       // Generate a short-lived token for 2FA verification
       const tempToken = this.jwtService.sign(
-        { sub: user.id, email: user.email, scope: "2fa" },
-        { secret: process.env.JWT_SECRET, expiresIn: "5m" },
+        { sub: user.id, email: user.email, scope: '2fa' },
+        { secret: process.env.JWT_SECRET, expiresIn: '5m' }
       );
 
       this.logger.log(`2FA required for user ${user.email}`);
@@ -192,7 +178,7 @@ export class AuthService {
       return {
         twoFactorRequired: true,
         tempToken,
-        message: "Two-factor authentication required.",
+        message: 'Two-factor authentication required.',
       };
     }
     // ─── End 2FA CHECK ──────────────────────────────────────────
@@ -209,11 +195,7 @@ export class AuthService {
     this.logger.log(`User logged in: ${user.email} (ID: ${user.id})`);
 
     // 6. Return user info (without sensitive fields) and tokens
-    const {
-      password: _password,
-      refreshToken: _refreshToken,
-      ...result
-    } = user;
+    const { password: _password, refreshToken: _refreshToken, ...result } = user;
     return {
       user: result,
       ...tokens,
@@ -230,18 +212,14 @@ export class AuthService {
     });
     // If user doesn't exist or has no refresh token stored, reject
     if (!user || !user.refreshToken) {
-      this.logger.warn(
-        `Refresh failed: no valid refresh token for user ${userId}`,
-      );
-      throw new UnauthorizedException("Invalid refresh token");
+      this.logger.warn(`Refresh failed: no valid refresh token for user ${userId}`);
+      throw new UnauthorizedException('Invalid refresh token');
     }
 
     // 2. Check if the provided refresh token matches the stored one
     if (user.refreshToken !== refreshToken) {
-      this.logger.warn(
-        `Refresh failed: refresh token mismatch for user ${userId}`,
-      );
-      throw new UnauthorizedException("Invalid refresh token");
+      this.logger.warn(`Refresh failed: refresh token mismatch for user ${userId}`);
+      throw new UnauthorizedException('Invalid refresh token');
     }
 
     // 3. Generate new tokens (rotate)
@@ -284,25 +262,18 @@ export class AuthService {
     // 2. If user not found, still return success (security best practice)
     //    This prevents email enumeration attacks
     if (!user) {
-      this.logger.warn(
-        `Password reset requested for non-existent email: ${email}`,
-      );
+      this.logger.warn(`Password reset requested for non-existent email: ${email}`);
       return {
-        message:
-          "If an account exists with this email, you will receive a password reset link.",
+        message: 'If an account exists with this email, you will receive a password reset link.',
       };
     }
     // 3. Check if account is active
     if (!user.isActive) {
-      this.logger.warn(
-        `Password reset requested for inactive account: ${email}`,
-      );
-      throw new BadRequestException(
-        "Account is disabled. Please contact support.",
-      );
+      this.logger.warn(`Password reset requested for inactive account: ${email}`);
+      throw new BadRequestException('Account is disabled. Please contact support.');
     }
     // 4. Generate reset token (1-hour expiry)
-    const resetToken = randomBytes(32).toString("hex");
+    const resetToken = randomBytes(32).toString('hex');
     const resetTokenExpiry = new Date();
     resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
     // 5. Store token in database
@@ -314,29 +285,18 @@ export class AuthService {
       },
     });
     // 6. Send reset email (non-blocking)
-    this.emailService
-      .sendPasswordResetEmail(email, user.name, resetToken)
-      .catch((error) => {
-        this.logger.error(
-          { error },
-          `Failed to send password reset email to ${email}`,
-        );
-      });
+    this.emailService.sendPasswordResetEmail(email, user.name, resetToken).catch((error) => {
+      this.logger.error({ error }, `Failed to send password reset email to ${email}`);
+    });
     this.logger.log(`Password reset token generated for: ${email}`);
     return {
-      message:
-        "If an account exists with this email, you will receive a password reset link.",
+      message: 'If an account exists with this email, you will receive a password reset link.',
     };
   }
 
   // ─── RESET PASSWORD ──────────────────────────────────────────────────
-  async resetPassword(
-    token: string,
-    newPassword: string,
-  ): Promise<{ message: string }> {
-    this.logger.log(
-      `Password reset attempt with token: ${token.substring(0, 8)}...`,
-    );
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    this.logger.log(`Password reset attempt with token: ${token.substring(0, 8)}...`);
     // 1. Find user with valid reset token (not expired)
     const user = await this.prisma.user.findFirst({
       where: {
@@ -346,16 +306,12 @@ export class AuthService {
     });
     if (!user) {
       this.logger.warn(`Password reset failed: invalid or expired token`);
-      throw new BadRequestException("Invalid or expired reset token");
+      throw new BadRequestException('Invalid or expired reset token');
     }
     // 2. Check if account is active
     if (!user.isActive) {
-      this.logger.warn(
-        `Password reset attempted for inactive account: ${user.email}`,
-      );
-      throw new BadRequestException(
-        "Account is disabled. Please contact support.",
-      );
+      this.logger.warn(`Password reset attempted for inactive account: ${user.email}`);
+      throw new BadRequestException('Account is disabled. Please contact support.');
     }
     // 3. Hash the new password
     const hashedPassword = await argon2.hash(newPassword);
@@ -370,8 +326,7 @@ export class AuthService {
     });
     this.logger.log(`Password reset successful for: ${user.email}`);
     return {
-      message:
-        "Password reset successfully. You can now login with your new password.",
+      message: 'Password reset successfully. You can now login with your new password.',
     };
   }
 
@@ -400,18 +355,28 @@ export class AuthService {
 
   // ---------- PRIVATE: GENERATE TOKENS ----------
   private async generateTokens(user: User) {
-    // Payload contains user id, email, and role (for role-based access)
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    // ✅ Add a unique JWT ID (jti) to ensure each token is unique,
+    // even when generated within the same second.
+    // This also enables token revocation if needed.
+    const jti = randomBytes(16).toString('hex');
+
+    // Payload contains user id, email, role, and a unique jti
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      jti,
+    };
 
     // Sign access token with shorter expiry and access secret
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: process.env.JWT_SECRET, // Use access secret
-        expiresIn: "15m", // 15 minutes
+        expiresIn: '15m', // 15 minutes
       }),
       this.jwtService.signAsync(payload, {
         secret: process.env.JWT_REFRESH_SECRET, // Different secret for refresh
-        expiresIn: "7d", // 7 days
+        expiresIn: '7d', // 7 days
       }),
     ]);
 
