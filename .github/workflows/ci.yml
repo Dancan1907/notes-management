@@ -46,6 +46,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # ✅ NEW: Generate Prisma Client before tests
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        run: pnpm prisma generate
+
       - name: Lint (Backend)
         run: pnpm lint --filter=@repo/backend
 
